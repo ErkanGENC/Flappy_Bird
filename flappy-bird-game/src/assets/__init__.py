@@ -8,7 +8,7 @@ pygame.mixer.init()
 ASSETS_DIR = os.path.dirname(__file__)
 
 # Load images
-BIRD_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'images', 'bird.png'))
+BIRD_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'bird.png'))  # Update this line with the new bird image path
 PIPE_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'pipe.png'))
 BASE_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'base.png'))
 BACKGROUND_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'background.png'))
