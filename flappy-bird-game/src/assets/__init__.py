@@ -12,6 +12,7 @@ BIRD_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'bird.png'))  # Update thi
 PIPE_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'pipe.png'))
 BASE_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'base.png'))
 BACKGROUND_IMG = pygame.image.load(os.path.join(ASSETS_DIR, 'background.png'))
+BACK_IMG= pygame.image.load(os.path.join(ASSETS_DIR,'back.jpeg'))
 
 # Load sounds
 FLAP_SOUND = pygame.mixer.Sound(os.path.join(ASSETS_DIR, 'flap.wav'))
