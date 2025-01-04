@@ -4,6 +4,7 @@ import time
 from bird import Bird
 from pipe import Pipe
 from base import Base
+from PIL import Image, ImageSequence  # PIL kütüphanesini ekleyin
 
 class Game:
     def __init__(self):
@@ -37,14 +38,14 @@ class Game:
                 (15, 5), (20, 0), (25, 5), (30, 10), (15, 25), (0, 10), (5, 5), (10, 0)
             ])
         
-        # Arka plan resmi
-        bg_image_path = 'flappy-bird-game/src/assets/images/çimen.jpg'
-        try:
-            self.background = pygame.image.load(bg_image_path)
-            self.background = pygame.transform.scale(self.background, (self.screen_width, self.screen_height))
-        except:
-            print(f"Error: Background image '{bg_image_path}' could not be loaded.")
-            self.background = None
+        # Animasyonlu arka plan için değişkenler
+        self.bg_frames = []
+        self.current_frame = 0
+        self.frame_delay = 100  # milisaniye cinsinden frame değişim süresi
+        self.last_frame_time = time.time() * 1000  # milisaniye cinsinden şimdiki zaman
+        
+        # Animasyonlu arka planı yükle
+        self._load_animated_background()
 
         self.running = True
         self.in_menu = True
@@ -77,9 +78,8 @@ class Game:
 
     def _show_menu(self):
         while self.in_menu and self.running:
+            # Menüde düz siyah arka plan kullan
             self.screen.fill((0, 0, 0))
-            if self.background:
-                self.screen.blit(self.background, (0, 0))
             
             # Menü başlığı
             title = self.game_over_font.render("Flappy Bird", True, (255, 255, 255))
@@ -115,9 +115,8 @@ class Game:
         back_image = pygame.image.load("flappy-bird-game/src/assets/images/back.jpeg")
         self.in_settings = True
         while self.in_settings and self.running:
+            # Ayarlarda düz siyah arka plan kullan
             self.screen.fill((0, 0, 0))
-            if self.background:
-                self.screen.blit(self.background, (0, 0))
             
             # Geri dön oku (sol üst köşe)
             back_arrow = self._create_small_button("←", 20, 20, (34, 139, 34))
@@ -179,7 +178,8 @@ class Game:
         waiting_for_restart = True
         
         while waiting_for_restart:
-            # Arkaplanı karart
+            # Game over ekranında düz siyah arka plan kullan
+            self.screen.fill((0, 0, 0))
             s = pygame.Surface((self.screen_width, self.screen_height))
             s.set_alpha(128)
             s.fill((0, 0, 0))
@@ -307,21 +307,69 @@ class Game:
                 self.pipes.append(Pipe(self.screen_width))
 
     def _draw_score(self):
-        # Skor metnini oluştur
-        score_text = self.font.render(str(self.score), True, (255, 255, 255))
-        # Metni ekranın üst ortasına yerleştir
-        score_rect = score_text.get_rect(center=(self.screen_width // 2, 50))
+        # Skor metnini "Skor: X" formatında oluştur
+        score_text = self.font.render(f"Skor: {self.score}", True, (255, 255, 255))
+        # Metni ekranın sağ üst köşesine yerleştir (10 piksel boşluk bırakarak)
+        score_rect = score_text.get_rect()
+        score_rect.topright = (self.screen_width - 10, 10)
         # Skoru çiz
         self.screen.blit(score_text, score_rect)
 
+    def _load_animated_background(self):
+        """Animasyonlu arka planı yükler ve frame'lere ayırır"""
+        try:
+            # GIF dosyasının yolunu belirtin
+            gif_path = 'flappy-bird-game/src/assets/images/background.gif'
+            gif = Image.open(gif_path)
+            
+            for frame in ImageSequence.Iterator(gif):
+                # Her frame'i pygame surface'e çevir
+                frame = frame.convert('RGB')  # RGBA yerine RGB kullan
+                frame = frame.resize((self.screen_width, self.screen_height))
+                frame_str = frame.tobytes()
+                pygame_frame = pygame.image.fromstring(
+                    frame_str, frame.size, 'RGB'  # RGBA yerine RGB modu kullan
+                )
+                self.bg_frames.append(pygame_frame)
+            
+            if not self.bg_frames:  # Eğer frame yüklenemezse
+                raise Exception("No frames loaded from GIF")
+                
+        except Exception as e:
+            print(f"Error loading animated background: {e}")
+            self.bg_frames = []
+            # Yedek olarak düz renk kullan
+            backup_surface = pygame.Surface((self.screen_width, self.screen_height))
+            backup_surface.fill((135, 206, 235))  # Açık mavi
+            self.bg_frames.append(backup_surface)
+
+    def _update_background(self):
+        """Arka plan animasyonunu günceller"""
+        current_time = time.time() * 1000
+        if current_time - self.last_frame_time > self.frame_delay:
+            self.current_frame = (self.current_frame + 1) % len(self.bg_frames)
+            self.last_frame_time = current_time
+
     def _draw(self):
-        # Arka plan resmini çiz
-        if self.background:
-            self.screen.blit(self.background, (0, 0))
+        # Sadece oyun oynanırken animasyonlu arka planı göster
+        if not self.game_over and not self.in_menu and not self.in_settings:
+            self._update_background()
+            self.screen.blit(self.bg_frames[self.current_frame], (0, 0))
         else:
-            self.screen.fill((135, 206, 235))  # Açık mavi arka plan (resim yüklenemezse)
+            self.screen.fill((0, 0, 0))  # Diğer durumlarda siyah arka plan
         
+        # Diğer öğeleri çiz
         self.bird.draw(self.screen)
         for pipe in self.pipes:
             pipe.draw(self.screen)
         self.base.draw(self.screen)
+
+    def _show_scoreboard(self):
+        """Skor tablosunu göster."""
+        scores = self._load_scores()
+        self.screen.fill((0, 0, 0))
+        # Animasyonlu arka planı skor tablosunda da kullan
+        self._update_background()
+        self.screen.blit(self.bg_frames[self.current_frame], (0, 0))
+        
+        # ... geri kalan kod aynı ...
