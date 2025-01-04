@@ -9,9 +9,9 @@ from PIL import Image, ImageSequence  # PIL kütüphanesini ekleyin
 class Game:
     def __init__(self):
         self.screen_width = 500
-        self.screen_height = 800
+        self.screen_height =800
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("EZGİ SANA AŞIGIM BİR TANEM <3")
+        pygame.display.set_caption("Game")
         self.clock = pygame.time.Clock()
         
         # Font ayarları
@@ -95,8 +95,9 @@ class Game:
             
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
-                    return "exit"
+                    if self._show_exit_confirmation():  # Çıkış onayı iste
+                        self.running = False
+                        return "exit"
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = event.pos
                     if start_button.collidepoint(mouse_pos):
@@ -106,20 +107,33 @@ class Game:
                         if self._show_settings() == "exit":
                             return "exit"
                     elif exit_button.collidepoint(mouse_pos):
-                        self.running = False
-                        return "exit"
+                        if self._show_exit_confirmation():  # Çıkış onayı iste
+                            self.running = False
+                            return "exit"
             
             self.clock.tick(30)
 
     def _show_settings(self):
-        back_image = pygame.image.load("flappy-bird-game/src/assets/images/back.jpeg")
+        # Geri dön ikonunu yükle ve boyutlandır
+        try:
+            back_image = pygame.image.load("flappy-bird-game/src/assets/images/back.jpeg")
+            back_image = pygame.transform.scale(back_image, (40, 40))  # Buton boyutuna uygun olarak ölçekle
+        except:
+            print("Error loading back icon")
+            back_image = None
+        
         self.in_settings = True
         while self.in_settings and self.running:
             # Ayarlarda düz siyah arka plan kullan
             self.screen.fill((0, 0, 0))
             
-            # Geri dön oku (sol üst köşe)
-            back_arrow = self._create_small_button("←", 20, 20, (34, 139, 34))
+            # Geri dön butonu (sol üst köşe)
+            back_rect = pygame.Rect(20, 20, 40, 40)
+            if back_image:
+                self.screen.blit(back_image, back_rect)
+            else:
+                # Eğer ikon yüklenemezse ok işareti göster
+                self._create_small_button("←", 20, 20, (34, 139, 34))
             
             # Ayarlar başlığı
             title = self.game_over_font.render("Ayarlar", True, (255, 255, 255))
@@ -152,7 +166,7 @@ class Game:
                     return "exit"
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = event.pos
-                    if back_arrow.collidepoint(mouse_pos):
+                    if back_rect.collidepoint(mouse_pos):  # back_rect'i kullan
                         self.in_settings = False
                         return "menu"
                     elif bird_minus.collidepoint(mouse_pos) and self.bird_speed > 5:
@@ -373,3 +387,64 @@ class Game:
         self.screen.blit(self.bg_frames[self.current_frame], (0, 0))
         
         # ... geri kalan kod aynı ...
+
+    def _show_exit_confirmation(self):
+        """Çıkış onay ekranını gösterir"""
+        # Yarı saydam siyah overlay
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(128)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
+        
+        # Daha küçük font boyutu kullan
+        confirmation_font = pygame.font.Font(None, 36)  # Font boyutunu 48'den 36'ya düşür
+        
+        # Onay mesajı
+        message = confirmation_font.render("Çıkmak istediğinizden emin misiniz?", True, (255, 255, 255))
+        message_rect = message.get_rect(center=(self.screen_width // 2, self.screen_height // 2 - 50))
+        self.screen.blit(message, message_rect)
+        
+        # Butonları oluştur
+        button_width = 100
+        button_height = 40
+        spacing = 20  # Butonlar arası boşluk
+        
+        # Evet butonu (kırmızı)
+        yes_rect = pygame.Rect(
+            self.screen_width // 2 - button_width - spacing // 2,
+            self.screen_height // 2 + 20,
+            button_width,
+            button_height
+        )
+        pygame.draw.rect(self.screen, (139, 0, 0), yes_rect, border_radius=5)
+        yes_text = confirmation_font.render("Evet", True, (255, 255, 255))
+        yes_text_rect = yes_text.get_rect(center=yes_rect.center)
+        self.screen.blit(yes_text, yes_text_rect)
+        
+        # Hayır butonu (yeşil)
+        no_rect = pygame.Rect(
+            self.screen_width // 2 + spacing // 2,
+            self.screen_height // 2 + 20,
+            button_width,
+            button_height
+        )
+        pygame.draw.rect(self.screen, (34, 139, 34), no_rect, border_radius=5)
+        no_text = confirmation_font.render("Hayır", True, (255, 255, 255))
+        no_text_rect = no_text.get_rect(center=no_rect.center)
+        self.screen.blit(no_text, no_text_rect)
+        
+        pygame.display.update()
+        
+        # Kullanıcı cevabını bekle
+        waiting_for_answer = True
+        while waiting_for_answer:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return True
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = event.pos
+                    if yes_rect.collidepoint(mouse_pos):
+                        return True
+                    elif no_rect.collidepoint(mouse_pos):
+                        return False
+            self.clock.tick(30)
