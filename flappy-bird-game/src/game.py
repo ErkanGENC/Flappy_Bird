@@ -1,6 +1,7 @@
 import pygame
 import os  
 import time
+import json
 from bird import Bird
 from pipe import Pipe
 from base import Base
@@ -9,7 +10,7 @@ from PIL import Image, ImageSequence  # PIL kütüphanesini ekleyin
 class Game:
     def __init__(self):
         self.screen_width = 500
-        self.screen_height =800
+        self.screen_height = 800
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Game")
         self.clock = pygame.time.Clock()
@@ -448,3 +449,11 @@ class Game:
                     elif no_rect.collidepoint(mouse_pos):
                         return False
             self.clock.tick(30)
+
+    def _load_scores(self):
+        """Skorları yükle"""
+        try:
+            with open("flappy-bird-game/src/scores.json", "r") as f:
+                return json.load(f)
+        except:
+            return []

@@ -1,9 +1,9 @@
 from PIL import Image, ImageDraw
 
 def create_animated_background():
-    # Arka plan boyutları
-    width = 500
-    height = 800
+    # Arka plan boyutları eski değerlerde
+    width = 500   # 800 olmalı
+    height = 800  # 1000 olmalı
     frames = []
     
     # 10 frame'lik basit bir animasyon oluştur
